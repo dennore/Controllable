@@ -98,10 +98,26 @@ public abstract class AdaptiveControllerManager
             activeController = null;
         }
 
-        // If no controller is active and auto select is enabled, connect to the first controller
+        // If no controller is active and auto select is enabled, connect to the specified controller
         if(this.ready && activeController == null && Config.CLIENT.options.autoSelect.get())
         {
-            activeController = this.connectToBestGameController();
+            double targetIndex = Config.CLIENT.options.autoSelectIndex.get();
+            if(targetIndex < 0) {
+                activeController = this.connectToBestGameController();
+            } else {
+                // Try to connect to the specified index
+                for(Map.Entry<Number, Pair<Integer, String>> entry : this.controllers.entrySet()) {
+                    if(entry.getValue().getLeft() == (int)targetIndex) {
+                        activeController = this.createController(entry.getValue().getLeft(), entry.getKey());
+                        if(activeController != null && this.setActiveController(activeController)) {
+                            break;
+                        }
+                    }
+                }
+                if(activeController == null) {
+                    Constants.LOG.warn("Could not connect to controller at index {}", (int)targetIndex);
+                }
+            }
             this.sendControllerToast(true, activeController);
         }
     }
@@ -248,7 +264,21 @@ public abstract class AdaptiveControllerManager
         /* Attempts to load the first game controller connected if auto select is enabled */
         if(Config.CLIENT.options.autoSelect.get())
         {
-            this.connectToBestGameController();
+            double targetIndex = Config.CLIENT.options.autoSelectIndex.get();
+            if(targetIndex < 0) {
+                this.connectToBestGameController();
+            } else {
+                // Try to connect to the specified index
+                for(Map.Entry<Number, Pair<Integer, String>> entry : this.controllers.entrySet()) {
+                    if(entry.getValue().getLeft() == (int)targetIndex) {
+                        Controller controller = this.createController(entry.getValue().getLeft(), entry.getKey());
+                        if(controller != null && this.setActiveController(controller)) {
+                            this.sendControllerToast(true, controller);
+                            break;
+                        }
+                    }
+                }
+            }
         }
         this.ready = true;
     }
